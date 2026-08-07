@@ -1,0 +1,222 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ======================= HELPER FUNCTIONS =======================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && userData().role == 'admin';
+    }
+
+    function isPartner() {
+      return isSignedIn() && userData().role == 'partner';
+    }
+
+    function partnerUidForCode(code) {
+      return code is string && code != '' &&
+        get(/databases/$(database)/documents/partner_codes/$(code)).data.partnerUid;
+    }
+
+    // True when the caller is a partner whose partnerCode maps to them.
+    function isPartnerLinkedTo(code) {
+      return isPartner() && partnerUidForCode(code) == request.auth.uid;
+    }
+
+    // True when the caller is a partner that owns the given shop.
+    function partnerOwnsShop(ownerId) {
+      return isPartner() &&
+        partnerUidForCode(get(/databases/$(database)/documents/shops/$(ownerId)).data.partnerCode) == request.auth.uid;
+    }
+
+    // True when the caller is the owner of a doc carrying an ownerId field.
+    function ownsResource() {
+      return (request.resource != null && request.resource.data.ownerId == request.auth.uid)
+        || (resource != null && resource.data.ownerId == request.auth.uid);
+    }
+
+    // ======================= USERS =======================
+    match /users/{uid} {
+      allow read: if isAdmin() || request.auth.uid == uid;
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role in ['customer', 'owner'];
+      allow update: if isAdmin()
+        || (request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'name', 'mobile', 'language', 'favouriteShopIds', 'fcmToken'
+            ]))
+        // Self-repair of a missing email: may only be set to the account's own
+        // auth email, and nothing else may change.
+        || (request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['email'])
+            && request.resource.data.email == request.auth.token.email)
+        // Self-repair of a doc that lost its role/email (e.g. a stripped
+        // {fcmToken}-only doc): a doc WITHOUT any role may only gain
+        // role='customer' and its own auth email, so no privilege escalation
+        // is possible.
+        || (request.auth.uid == uid
+            && !('role' in resource.data)
+            && request.resource.data.role == 'customer'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'email'])
+            && (!('email' in request.resource.data)
+                || request.resource.data.email == request.auth.token.email));
+      allow delete: if isAdmin();
+    }
+
+    // ======================= SHOPS =======================
+    match /shops/{ownerId} {
+      allow create: if isSignedIn()
+        && request.auth.uid == ownerId
+        && request.resource.data.ownerId == ownerId
+        && request.resource.data.accessStatus == 'pending';
+      allow read: if isSignedIn();
+      allow update: if isAdmin()
+        // Owner can manage their own shop but never change accessStatus.
+        || (request.auth.uid == ownerId
+            && request.resource.data.ownerId == resource.data.ownerId
+            && request.resource.data.accessStatus == resource.data.accessStatus)
+        // A linked partner may grant/block ONLY their own shop.
+        || (isPartnerLinkedTo(resource.data.partnerCode)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accessStatus'])
+            && request.resource.data.accessStatus in ['granted', 'blocked'])
+        // Customers update only the booking token fields during createBooking.
+        || (isSignedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nextToken', 'tokenDate']));
+      allow delete: if isAdmin();
+    }
+
+    // ======================= BOOKINGS =======================
+    match /bookings/{id} {
+      allow create: if isSignedIn()
+        && request.resource.data.customerId == request.auth.uid
+        && request.resource.data.status == 'pending_owner_confirmation'
+        && get(/databases/$(database)/documents/shops/$(request.resource.data.ownerId)).data.accessStatus == 'granted';
+      allow read: if isSignedIn();
+      allow update: if isAdmin()
+        // Customer can cancel / pay for their own booking.
+        || (request.auth.uid == resource.data.customerId
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status', 'isPaid', 'paymentMethod', 'cancelledAt',
+              'reachedShop', 'offlinePaymentRequested', 'paidAt'
+            ]))
+        // Owner manages bookings for their shop.
+        || (request.auth.uid == resource.data.ownerId
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status', 'scheduledDate', 'scheduledTime', 'chairNumber',
+              'price', 'remainingAmount', 'isPaid', 'offlinePaymentRequested',
+              'customerName', 'customerMobile', 'reachedShop', 'paidAt'
+            ]));
+      allow delete: if isAdmin();
+    }
+
+    // ======================= NOTIFICATIONS =======================
+    match /notifications/{id} {
+      allow create: if isSignedIn()
+        && (request.resource.data.ownerId == request.auth.uid
+            || request.resource.data.customerId == request.auth.uid);
+      allow read: if isAdmin()
+        || request.auth.uid == resource.data.ownerId
+        || request.auth.uid == resource.data.customerId;
+      allow update: if (isAdmin()
+          || request.auth.uid == resource.data.ownerId
+          || request.auth.uid == resource.data.customerId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if isAdmin();
+    }
+
+    // ======================= CHAIRS =======================
+    match /chairs/{docId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || ownsResource();
+    }
+
+    // ======================= QUEUE =======================
+    match /queue/{ownerId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || request.auth.uid == ownerId;
+    }
+
+    // ======================= SERVICE TIMERS =======================
+    match /service_timers/{ownerId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || request.auth.uid == ownerId;
+    }
+
+    // ======================= PREMIUM SLOTS =======================
+    match /premium_slots/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || ownsResource();
+    }
+
+    // ======================= ADMIN REQUESTS =======================
+    match /admin_requests/{ownerId} {
+      allow create: if isAdmin()
+        || (isSignedIn()
+            && request.auth.uid == ownerId
+            && request.resource.data.ownerId == ownerId
+            && request.resource.data.status == 'pending');
+      allow read: if isAdmin() || isPartner() || request.auth.uid == ownerId;
+      allow update: if isAdmin()
+        || (partnerOwnsShop(ownerId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+            && request.resource.data.status in ['granted', 'blocked']);
+      allow delete: if isAdmin();
+    }
+
+    // ======================= PARTNER CODES =======================
+    match /partner_codes/{code} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ======================= PARTNER REQUESTS =======================
+    match /partner_requests/{partnerUid} {
+      allow create: if isSignedIn()
+        && request.resource.data.partnerUid == request.auth.uid;
+      allow read: if isAdmin() || request.auth.uid == partnerUid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ======================= PARTNER EDIT REQUESTS =======================
+    match /partner_edit_requests/{id} {
+      allow create: if isSignedIn()
+        && request.resource.data.partnerUid == request.auth.uid;
+      allow read: if isAdmin() || resource.data.partnerUid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ======================= FEEDBACK =======================
+    match /feedback/{id} {
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ======================= SUPPORT TICKETS =======================
+    match /support_tickets/{id} {
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin() || resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ======================= PAYMENTS =======================
+    // Written by the Razorpay webhook via the Admin SDK (bypasses rules).
+    // Readable by admins for reconciliation/ledger views.
+    match /payments/{id} {
+      allow read: if isAdmin();
+    }
+
+    // ======================= DENY EVERYTHING ELSE =======================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

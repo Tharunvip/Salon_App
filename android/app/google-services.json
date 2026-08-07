@@ -1,0 +1,118 @@
+{
+  "project_info": {
+    "project_number": "470112905338",
+    "project_id": "salonapp-cf6f2",
+    "storage_bucket": "salonapp-cf6f2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:470112905338:android:facc37b4cd50c90b87b3c3",
+        "android_client_info": {
+          "package_name": "com.example.salon_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "470112905338-bi0qhd64lnmri52arhh9oa7p6nulcdum.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBDJ8pxiJHr5sIfcWBt8zz1bsDzfWUlZo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "470112905338-bi0qhd64lnmri52arhh9oa7p6nulcdum.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "470112905338-c289e045es15mliu2v5qvlf4b6n01r36.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.salonBookingApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:470112905338:android:98e9091f3482431d87b3c3",
+        "android_client_info": {
+          "package_name": "com.example.salon_booking_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "470112905338-bi0qhd64lnmri52arhh9oa7p6nulcdum.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBDJ8pxiJHr5sIfcWBt8zz1bsDzfWUlZo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "470112905338-bi0qhd64lnmri52arhh9oa7p6nulcdum.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "470112905338-c289e045es15mliu2v5qvlf4b6n01r36.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.salonBookingApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:470112905338:android:c493a68960bfbc2f87b3c3",
+        "android_client_info": {
+          "package_name": "com.rtk.salonhub"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "470112905338-bi0qhd64lnmri52arhh9oa7p6nulcdum.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBDJ8pxiJHr5sIfcWBt8zz1bsDzfWUlZo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "470112905338-bi0qhd64lnmri52arhh9oa7p6nulcdum.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "470112905338-c289e045es15mliu2v5qvlf4b6n01r36.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.salonBookingApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

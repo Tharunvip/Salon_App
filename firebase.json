@@ -1,0 +1,48 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "salonapp-cf6f2",
+          "appId": "1:470112905338:android:c493a68960bfbc2f87b3c3",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "salonapp-cf6f2",
+          "configurations": {
+            "android": "1:470112905338:android:c493a68960bfbc2f87b3c3",
+            "ios": "1:470112905338:ios:0aa34396f37f0fe287b3c3",
+            "macos": "1:470112905338:ios:0aa34396f37f0fe287b3c3",
+            "web": "1:470112905338:web:d2b88b98beedded387b3c3",
+            "windows": "1:470112905338:web:678b22168155161587b3c3"
+          }
+        }
+      }
+    }
+  },
+  "functions": {
+    "source": "functions"
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
